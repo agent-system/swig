@@ -1,0 +1,299 @@
+/* Define a C preprocessor symbol that can be used in interface files
+   to distinguish between the SWIG language modules. */ 
+
+#define SWIG_EUSLISP
+
+/* Typespecs for basic types. */
+
+%typemap(cin) void ":integer";
+
+%typemap(cin) char ":integer";
+%typemap(cin) char * ":string";
+%typemap(cin) unsigned char ":integer";
+%typemap(cin) signed char ":integer";
+
+%typemap(cin) short ":integer";
+%typemap(cin) signed short ":integer";
+%typemap(cin) unsigned short ":integer";
+
+%typemap(cin) int ":integer";
+%typemap(cin) signed int ":integer";
+%typemap(cin) unsigned int ":integer";
+
+%typemap(cin) long ":integer";
+%typemap(cin) signed long ":integer";
+%typemap(cin) unsigned long ":integer";
+
+%typemap(cin) long long ":integer";
+%typemap(cin) signed long long ":integer";
+%typemap(cin) unsigned long long ":integer";
+
+%typemap(cin) float ":float";
+%typemap(cin) double ":float";
+%typemap(cin) SWIGTYPE ":integer";
+
+%typemap(cout) void ":integer";
+%typemap(cout) void * "(:foreign-string)";
+
+%typemap(cout) char ":integer";
+%typemap(cout) char * "(:foreign-string)";
+%typemap(cout) unsigned char ":integer";
+%typemap(cout) unsigned char * "(:foreign-string)";
+%typemap(cout) signed char ":integer";
+%typemap(cout) signed char * "(:foreign-string)";
+
+%typemap(cout) short ":integer";
+%typemap(cout) short * "(:foreign-string)";
+%typemap(cout) signed short ":integer";
+%typemap(cout) unsigned short ":integer";
+%typemap(cout) unsigned short * "(:foreign-string)";
+
+%typemap(cout) int ":integer";
+%typemap(cout) signed int ":integer";
+%typemap(cout) unsigned int ":integer";
+
+%typemap(cout) long ":integer";
+%typemap(cout) signed long ":integer";
+%typemap(cout) unsigned long ":integer";
+
+%typemap(cout) long long ":integer";
+%typemap(cout) signed long long ":integer";
+%typemap(cout) unsigned long long ":integer";
+
+%typemap(cout) float ":float";
+%typemap(cout) float * ":integer";
+%typemap(cout) double ":float";
+%typemap(cout) double * ":integer";
+%typemap(cout) SWIGTYPE ":integer";
+
+
+%typemap(ctype) bool        "int";
+%typemap(ctype) char, unsigned char, signed char,
+                short, signed short, unsigned short,
+                int, signed int, unsigned int,
+                long, signed long, unsigned long,
+                float, double, long double, char *, void *, void,
+                enum SWIGTYPE, SWIGTYPE *,
+                SWIGTYPE[ANY], SWIGTYPE &  "$1_ltype";
+%typemap(ctype) SWIGTYPE                   "$&1_type";
+
+%typemap(in) bool                          "$1 = (bool)$input;";
+%typemap(in) char, unsigned char, signed char,
+             short, signed short, unsigned short,
+             int, signed int, unsigned int,
+             long, signed long, unsigned long,
+             float, double, long double, char *, void *, void,
+             enum SWIGTYPE, SWIGTYPE *,
+             SWIGTYPE[ANY], SWIGTYPE &     "$1 = $input;";
+%typemap(in) SWIGTYPE                      "$1 = *$input;";
+
+%typemap(out) void                         "";
+%typemap(out) bool                          "$result = (int)$1;";
+%typemap(out) char, unsigned char, signed char,
+              short, signed short, unsigned short,
+              int, signed int, unsigned int,
+              long, signed long, unsigned long,
+              float, double, long double, char *, void *,
+              enum SWIGTYPE, SWIGTYPE *,
+              SWIGTYPE[ANY], SWIGTYPE &    "$result = $1;";
+#ifdef __cplusplus
+%typemap(out) SWIGTYPE                     "$result = new $1_type($1);";
+#else
+%typemap(out) SWIGTYPE {
+  $result = ($&1_ltype) malloc(sizeof($1_type));
+  memmove($result, &$1, sizeof($1_type));
+}
+#endif
+
+%typecheck(SWIG_TYPECHECK_BOOL) bool { $1 = 1; };
+%typecheck(SWIG_TYPECHECK_CHAR) char { $1 = 1; };
+%typecheck(SWIG_TYPECHECK_FLOAT) float { $1 = 1; };
+%typecheck(SWIG_TYPECHECK_DOUBLE) double { $1 = 1; };
+%typecheck(SWIG_TYPECHECK_STRING) char * { $1 = 1; };
+%typecheck(SWIG_TYPECHECK_INTEGER)
+                    unsigned char, signed char,
+                    short, signed short, unsigned short,
+                    int, signed int, unsigned int,
+                    long, signed long, unsigned long,
+                    enum SWIGTYPE { $1 = 1; };
+%typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE *, SWIGTYPE &,
+                                   SWIGTYPE[ANY], SWIGTYPE { $1 = 1; };
+/* This maps C/C++ types to Lisp classes for overload dispatch */
+
+%typemap(lisptype) bool "cl:boolean";
+%typemap(lisptype) char "cl:character";
+%typemap(lisptype) unsigned char "cl:integer";
+%typemap(lisptype) signed char "cl:integer";
+
+%typemap(lispclass) bool "t";
+%typemap(lispclass) char "cl:character";
+%typemap(lispclass) unsigned char, signed char,
+                    short, signed short, unsigned short,
+                    int, signed int, unsigned int,
+                    long, signed long, unsigned long,
+                    enum SWIGTYPE       "cl:integer";
+/* CLOS methods can't be specialized on single-float or double-float */
+%typemap(lispclass) float "cl:number";
+%typemap(lispclass) double "cl:number";
+%typemap(lispclass) char * "cl:string";
+
+/* Array reference typemaps */
+%apply SWIGTYPE & { SWIGTYPE ((&)[ANY]) }
+
+/* const pointers */
+%apply SWIGTYPE * { SWIGTYPE *const }
+
+%{
+
+#ifdef __cplusplus
+#  define EXTERN   extern "C"
+#else
+#  define EXTERN   extern
+#endif
+
+#define EXPORT   EXTERN SWIGEXPORT
+
+#include <string.h>
+%}
+
+%insert("swiglisp") %{
+;;;SWIG wrapper code starts here
+
+(defmacro defanonenum (&body enums)
+   "Converts anonymous enums to defconstants."
+   `(progn ,@(loop for value in enums
+                        for index = 0 then (1+ index)
+                        when (listp value) do (setf index (second value)
+                                                          value (first value))
+                        collect `(defconstant ,value ,index))))
+#|
+(eval-when (:compile-toplevel :load-toplevel)
+  (unless (fboundp 'swig-lispify)
+    (defun swig-lispify (name flag &optional (package *package*))
+      (labels ((helper (lst last rest &aux (c (car lst)))
+                    (cond
+                      ((null lst)
+                       rest)
+                      ((upper-case-p c)
+                       (helper (cdr lst) 'upper
+                               (case last
+                                 ((lower digit) (list* c #\- rest))
+                                 (t (cons c rest)))))
+                      ((lower-case-p c)
+                       (helper (cdr lst) 'lower (cons (char-upcase c) rest)))
+                      ((digit-char-p c)
+                       (helper (cdr lst) 'digit 
+                               (case last
+                                 ((upper lower) (list* c #\- rest))
+                                 (t (cons c rest)))))
+                      ((char-equal c #\_)
+                       (helper (cdr lst) '_ (cons #\- rest)))
+                      (t
+                       (error "Invalid character: ~A" c)))))
+        (let ((fix (case flag
+                        ((constant enumvalue) "+")
+                        (variable "*")
+                        (t ""))))
+          (intern
+           (concatenate
+            string
+            fix
+            (nreverse (helper (concatenate cons name) nil nil))
+            fix)
+           package))))))
+|#
+;;;SWIG wrapper code ends here
+
+%}
+
+#ifdef __cplusplus
+%typemap(out) SWIGTYPE                     "$result = new $1_type($1);";
+#else
+%typemap(out) SWIGTYPE {
+  $result = ($&1_ltype) malloc(sizeof($1_type));
+  memmove($result, &$1, sizeof($1_type));
+}
+#endif
+
+//////////////////////////////////////////////////////////////
+
+/* name conversion for overloaded operators. */
+#ifdef __cplusplus
+%rename(__add__)	     *::operator+;
+%rename(__pos__)	     *::operator+();
+%rename(__pos__)	     *::operator+() const;
+
+%rename(__sub__)	     *::operator-;
+%rename(__neg__)	     *::operator-() const;
+%rename(__neg__)	     *::operator-();
+
+%rename(__mul__)	     *::operator*;
+%rename(__deref__)	     *::operator*();
+%rename(__deref__)	     *::operator*() const;
+
+%rename(__div__)	     *::operator/;
+%rename(__mod__)	     *::operator%;
+%rename(__logxor__)	     *::operator^;
+%rename(__logand__)	     *::operator&;
+%rename(__logior__)	     *::operator|;
+%rename(__lognot__)	     *::operator~();
+%rename(__lognot__)	     *::operator~() const;
+
+%rename(__not__)	     *::operator!();
+%rename(__not__)	     *::operator!() const;
+
+%rename(__assign__)	     *::operator=;
+
+%rename(__add_assign__)      *::operator+=;
+%rename(__sub_assign__)	     *::operator-=;
+%rename(__mul_assign__)	     *::operator*=;
+%rename(__div_assign__)	     *::operator/=;
+%rename(__mod_assign__)	     *::operator%=;
+%rename(__logxor_assign__)   *::operator^=;
+%rename(__logand_assign__)   *::operator&=;
+%rename(__logior_assign__)   *::operator|=;
+
+%rename(__lshift__)	     *::operator<<;
+%rename(__lshift_assign__)   *::operator<<=;
+%rename(__rshift__)	     *::operator>>;
+%rename(__rshift_assign__)   *::operator>>=;
+
+%rename(__eq__)		     *::operator==;
+%rename(__ne__)		     *::operator!=;
+%rename(__lt__)		     *::operator<;
+%rename(__gt__)		     *::operator>;
+%rename(__lte__)	     *::operator<=;
+%rename(__gte__)	     *::operator>=;
+
+%rename(__and__)	     *::operator&&;
+%rename(__or__)		     *::operator||;
+
+%rename(__preincr__)	     *::operator++();
+%rename(__postincr__)	     *::operator++(int);
+%rename(__predecr__)	     *::operator--();
+%rename(__postdecr__)	     *::operator--(int);
+
+%rename(__comma__)	     *::operator,();
+%rename(__comma__)	     *::operator,() const;
+
+%rename(__member_ref__)      *::operator->;
+%rename(__member_func_ref__) *::operator->*;
+
+%rename(__funcall__)	     *::operator();
+%rename(__aref__)	     *::operator[];
+#endif
+
+
+%{
+
+#ifdef __cplusplus
+#  define EXTERN   extern "C"
+#else
+#  define EXTERN   extern
+#endif
+
+#define EXPORT   EXTERN SWIGEXPORT
+
+#include <string.h>
+#include <stdlib.h>
+%}
