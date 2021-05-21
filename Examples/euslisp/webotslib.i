@@ -6,8 +6,22 @@
 %insert(lisphead) %{
 (setq webotslib (load-foreign (format nil "~A/lib/controller/libController.so" (unix:getenv "WEBOTS_HOME"))))
 
-(defmacro defcenum (type &rest args)
-   `(defcstruct ,type (x :integer))
+(defmacro defcenum (type &rest enums)
+ (let ((index 0)
+       (ret))
+  (setq ret
+      (mapcar
+      #'(lambda (x)
+	  (if (keywordp x) (setq x (intern (symbol-name x))))
+	  (cond
+	   ((listp x) (setq index (second x))
+	    (if (keywordp (car x)) 
+		(list 'defconstant (intern (symbol-name (car x))) index)
+	      (list 'defconstant (car x) index)))
+	   (t (list 'defconstant x (incf index)))))
+      enums))
+  `(progn (setq ,type :integer)
+      ,@ret)))
    )
 (defmacro defanonenum (&rest enums)
    "Converts anonymous enums to defconstants."
@@ -224,10 +238,10 @@
   *node-type-symbol-list*
   (mapcan
    #'(lambda (n)
-       (if (boundp n)
-           (list (cons (symbol-value n) n))
-         nil))
-   '(
+      (if (boundp n)
+	(list (cons (symbol-value n) n))
+	  nil))
+	      '(
      WB_NODE_NO_NODE
      WB_NODE_APPEARANCE
      WB_NODE_BACKGROUND
