@@ -33,20 +33,20 @@
 %typemap(cin) SWIGTYPE ":integer";
 
 %typemap(cout) void ":integer";
-%typemap(cout) void * "(:foreign-string)";
+%typemap(cout) void * "(:string)";
 
 %typemap(cout) char ":integer";
-%typemap(cout) char * "(:foreign-string)";
+%typemap(cout) char * "(:string)";
 %typemap(cout) unsigned char ":integer";
-%typemap(cout) unsigned char * "(:foreign-string)";
+%typemap(cout) unsigned char * "(:string)";
 %typemap(cout) signed char ":integer";
-%typemap(cout) signed char * "(:foreign-string)";
+%typemap(cout) signed char * "(:string)";
 
 %typemap(cout) short ":integer";
-%typemap(cout) short * "(:foreign-string)";
+%typemap(cout) short * "(:string)";
 %typemap(cout) signed short ":integer";
 %typemap(cout) unsigned short ":integer";
-%typemap(cout) unsigned short * "(:foreign-string)";
+%typemap(cout) unsigned short * "(:string)";
 
 %typemap(cout) int ":integer";
 %typemap(cout) signed int ":integer";
@@ -159,6 +159,7 @@
 %insert("swiglisp") %{
 ;;;SWIG wrapper code starts here
 
+#|
 (defmacro defanonenum (&body enums)
    "Converts anonymous enums to defconstants."
    `(progn ,@(loop for value in enums
@@ -166,7 +167,6 @@
                         when (listp value) do (setf index (second value)
                                                           value (first value))
                         collect `(defconstant ,value ,index))))
-#|
 (eval-when (:compile-toplevel :load-toplevel)
   (unless (fboundp 'swig-lispify)
     (defun swig-lispify (name flag &optional (package *package*))

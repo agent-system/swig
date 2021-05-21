@@ -9,6 +9,19 @@
 (defmacro defcenum (type &rest args)
    `(defcstruct ,type (x :integer))
    )
+(defmacro defanonenum (&rest enums)
+   "Converts anonymous enums to defconstants."
+ (let ((index 0)
+       (ret))
+    (setq ret
+      (mapcar
+      #'(lambda (x)
+	 (cond
+	  ((listp x) (setq index (second x)) (list 'defconstant (car x) index))
+	  (t (list 'defconstant x (incf index)))))
+      enums))
+  `(progn ,@ret)))
+
 %}
 
 %include "webots/types.h"
@@ -29,7 +42,7 @@
 %include "webots/gyro.h"
 %include "webots/inertial_unit.h"
 %include "webots/joystick.h"
- /* %include "webots/keyboard.h" */
+%include "webots/keyboard.h"
 %include "webots/led.h"
 %include "webots/lidar.h"
 %include "webots/lidar_point.h"
@@ -44,10 +57,9 @@
 %include "webots/radar_target.h"
 %include "webots/radio.h"
 %include "webots/receiver.h"
- /* %include "webots/remote_control.h" */
+  // %include "webots/remote_control.h"
 %include "webots/robot_window.h"
 %include "webots/robot_wwi.h"
- /* %include "webots/servo.h" */
 %include "webots/skin.h"
 %include "webots/speaker.h"
 %include "webots/supervisor.h"
