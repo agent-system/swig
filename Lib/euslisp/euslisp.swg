@@ -38,15 +38,15 @@
 %typemap(cout) char ":integer";
 %typemap(cout) char * "(:string)";
 %typemap(cout) unsigned char ":integer";
-%typemap(cout) unsigned char * "(:string)";
+%typemap(cout) unsigned char * "(:foreign-string)";
 %typemap(cout) signed char ":integer";
-%typemap(cout) signed char * "(:string)";
+%typemap(cout) signed char * "(:foreign-string)";
 
 %typemap(cout) short ":integer";
-%typemap(cout) short * "(:string)";
+%typemap(cout) short * ":integer";
 %typemap(cout) signed short ":integer";
 %typemap(cout) unsigned short ":integer";
-%typemap(cout) unsigned short * "(:string)";
+%typemap(cout) unsigned short * ":integer";
 
 %typemap(cout) int ":integer";
 %typemap(cout) signed int ":integer";
