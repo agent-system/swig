@@ -8,13 +8,13 @@
 %typemap(cin) void ":integer";
 
 %typemap(cin) char ":integer";
-%typemap(cin) char * ":string";
-%typemap(cin) unsigned char ":integer";
-%typemap(cin) signed char ":integer";
+%typemap(cin) char * ":char *";
+%typemap(cin) unsigned char ":char";
+%typemap(cin) signed char ":char";
 
-%typemap(cin) short ":integer";
-%typemap(cin) signed short ":integer";
-%typemap(cin) unsigned short ":integer";
+%typemap(cin) short ":short";
+%typemap(cin) signed short ":short";
+%typemap(cin) unsigned short ":short";
 
 %typemap(cin) int ":integer";
 %typemap(cin) signed int ":integer";
@@ -29,7 +29,7 @@
 %typemap(cin) unsigned long long ":integer";
 
 %typemap(cin) float ":float";
-%typemap(cin) double ":float";
+%typemap(cin) double ":double";
 %typemap(cin) SWIGTYPE ":integer";
 
 %typemap(cout) void ":integer";
