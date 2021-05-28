@@ -44,6 +44,7 @@
 %include "webots/accelerometer.h"
 %include "webots/brake.h"
 %include "webots/camera.h"
+//%include "webots/camera_recognition_object.h"
 %include "webots/compass.h"
 %include "webots/connector.h"
 %include "webots/console.h"
@@ -71,7 +72,7 @@
 %include "webots/radar_target.h"
 %include "webots/radio.h"
 %include "webots/receiver.h"
-  // %include "webots/remote_control.h"
+%include "webots/remote_control.h"
 %include "webots/robot_window.h"
 %include "webots/robot_wwi.h"
 %include "webots/skin.h"
@@ -98,13 +99,97 @@
     (dotimes (i len) (setf (elt str i) (elt fstr i)))
     str))
 ;;;
-(defun cout-string (fstr size)
+(defun cout-fstring (fstr size)
   (sys:poke
    (+ 2 (* 4 size)) ;; length + 2;; bgra8
    (+ (sys::address fstr) 8) ;; address
    :long)
   fstr)
+;;;
+(defmethod cstruct
+  (:get-alist
+   ()
+   ;; slotlst = (slot-info-0 ... slot-info-n)
+   ;; slot-info-i= (id type count element-size index total-byte-count)
+   ;; total-byte-count = count * element-size
+   ;; index(i) = index(i-1) + total-byte-count(i-1)
+   (mapcar
+    #'(lambda (s) (cons (car s) (send self :get+ (car s))))
+    (send (class self) :slotlist)))
+  (:get+
+   (slot-id &aux (cnt (elt (send (class self) :slot slot-id) 2))
+	    lst)
+   (cond
+    ((= cnt 1) (send self :get slot-id))
+    (t (dotimes (i cnt) (push (send self :get slot-id i) lst))
+       (reverse lst))))
+  (:set+
+   (val slot-id)
+   (let* ((slt (send (class self) :slot slot-id))
+	  (typ (elt slt 1)) (cnt (elt slt 2))
+	  (esize (elt slt 3)) (offset (elt slt 4))
+	  (tsize (elt slt 5))
+	  )
+     (if (> cnt 1)
+	 (dotimes (i cnt)
+	   (sys:poke (elt val i) self (+ offset (* i esize)) typ))
+       (if (numberp val) 
+	   (sys:poke val self offset typ)
+	 (sys:poke (elt val 0) self offset typ)))
+     val))
+  )
 
+(defun cout-value (adr offset typ &optional (len 1) (r (instantiate vector len)))
+  (cond
+   ((= len 1)
+    #+:x86_64
+    (sys:peek (+ adr offset) typ)
+    #-:x86_64
+    (sys:peek (+ adr offset) typ))
+   (t (dotimes (i len) (setf (elt r i)
+			     #+:x86_64
+			     (sys:peek (+ adr offset (* (byte-size typ) i)) typ)
+			     #-:x86_64
+			     (sys:peek (+ adr offset (* (byte-size typ) i)) typ)
+			     ))
+      r)))
+(defun cout-cstruct (addr cls)
+  (let* ((str (instantiate cls))
+	 (slt (send cls :slotlist)))
+    (dolist (s slt)
+      (send str :set+ (cout-value addr (elt s 4) (elt s 1) (elt s 2)) (elt s 0)))
+    str))
+(defun cout-string (addr)
+  (let (ret c (i 0))
+    (while (not (= 0 (setq c (sys:peek (+ addr i) :byte))))
+      (incf i) (push c ret))
+    (coerce (reverse ret) string)))
+;;;
+#|
+typedef struct {
+  int id;
+  double position[3];
+  double orientation[4];
+  double size[2];
+  int position_on_image[2];
+  int size_on_image[2];
+  int number_of_colors;
+  double *colors;
+  char *model;
+} WbCameraRecognitionObject;
+|#
+(defcstruct WbCameraRecognitionObject
+  (id :integer)
+  (position :double 3)
+  (orientation :double 4)
+  (size :double 2)
+  (position_on_image :integer 2)
+  (size_on_image :integer 2)
+  (number_of_colors :integer)
+  (colors :double *)
+  (model :char *)
+  )
+;;;
 (defun wb_camera_image_get_alfa (im camera_width m n)
  (elt im (+ 3 (* 4 (+ (* n camera_width) m)))))
 (defun wb_camera_image_get_byte (im camera_width m n &optional (offset 0))
@@ -134,13 +219,13 @@
 (defun webots-camera-fstring (camera)
   (let* ((w (wb_camera_get_width camera))
          (h (wb_camera_get_height camera)))
-    (cout-string (wb_camera_get_image camera) (* 4 w h))))
+    (cout-fstring (wb_camera_get_image camera) (* 4 w h))))
 
 (defun webots-camera-image (camera
                             &optional str)
   (let* ((w (wb_camera_get_width camera))
          (h (wb_camera_get_height camera))
-         (fs (cout-string (wb_camera_get_image camera) (* 4 w h))))
+         (fs (cout-fstring (wb_camera_get_image camera) (* 4 w h))))
     (unless str (setq str (make-string (* 3 w h))))
     (do* ((y 0 (+ 1 y)) (wy (* y w) (* y w)))
          ((>= y h))
