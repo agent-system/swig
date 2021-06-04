@@ -33,7 +33,7 @@
 %typemap(cin) SWIGTYPE ":integer";
 
 %typemap(cout) void ":integer";
-%typemap(cout) void * "(:string)";
+%typemap(cout) void * ":integer";
 
 %typemap(cout) char ":integer";
 %typemap(cout) char * "(:string)";
