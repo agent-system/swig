@@ -7,22 +7,29 @@
 (setq webotslib (load-foreign (format nil "~A/lib/controller/libController.so" (unix:getenv "WEBOTS_HOME"))))
 
 (defmacro defcenum (type &rest enums)
- (let ((index 0)
-       (ret))
-  (setq ret
-      (mapcar
-      #'(lambda (x)
-	  (if (keywordp x) (setq x (intern (symbol-name x))))
-	  (cond
-	   ((listp x) (setq index (second x))
-	    (if (keywordp (car x)) 
-		(list 'defconstant (intern (symbol-name (car x))) index)
-	      (list 'defconstant (car x) index)))
-	   (t (list 'defconstant x (incf index)))))
-      enums))
-  `(progn (setq ,type :integer)
-      ,@ret)))
-   )
+  (let ((index 0)
+	(ret))
+    (setq ret
+	  (mapcar
+	   #'(lambda (x)
+	       (if (keywordp x) (setq x (intern (symbol-name x))))
+	       (cond
+		((listp x)
+		 (setq index (second x))
+		 (prog1 
+		     (if (keywordp (car x)) 
+			 (list 'defconstant (intern (symbol-name (car x))) index)
+		       (list 'defconstant (car x) index))
+		   (if (numberp index) (incf index) (setq index (list '1+ index)))
+		   )
+		 )
+		(t (prog1 (list 'defconstant x index)
+		     (if (numberp index) (incf index) (setq index (list '1+ index))))))
+	       )
+	   enums))
+    `(progn (setq ,type :integer)
+	    ,@ret)))
+
 (defmacro defanonenum (&rest enums)
    "Converts anonymous enums to defconstants."
  (let ((index 0)
@@ -31,10 +38,14 @@
       (mapcar
       #'(lambda (x)
 	 (cond
-	  ((listp x) (setq index (second x)) (list 'defconstant (car x) index))
-	  (t (list 'defconstant x (incf index)))))
+	  ((listp x)
+	   (prog1
+	       (list 'defconstant (car x) index)
+	     (if (numberp index) (incf index) (setq index (list '1+ index)))))
+	  (t (prog1 (list 'defconstant x index)
+	       (if (numberp index) (incf index) (setq index (list '1+ index)))))))
       enums))
-  `(progn ,@ret)))
+    `(progn ,@ret)))
 
 %}
 
